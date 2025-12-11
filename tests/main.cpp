@@ -1,23 +1,40 @@
 #include <iostream>
 #include <omp.h>
 #include <string>
+#include <vector>
+#include "parallel_matcher.h"
+
+void Test_GetWitnessArray() {
+   ParallelMatcher pm;
+   pm.Test_GetWitnessArray();
+}
+
+void Test_Duel(){
+   ParallelMatcher pm;
+   pm.Test_Duel(1,2);
+   pm.Test_Duel(3,4);
+   pm.Test_Duel(5,6);
+   pm.Test_Duel(7,8);
+   pm.Test_Duel(9,10);
+   pm.Test_Duel(11,12);
+   pm.Test_Duel(13,14);
+   pm.Test_Duel(15,16);
+   pm.Test_Duel(1,4);
+   pm.Test_Duel(6,8);
+   pm.Test_Duel(9,11);
+   pm.Test_Duel(14,16);
+
+}
+
+void Test_MatchNonPeriodic(){
+   ParallelMatcher pm;
+   pm.Test_MatchNonPeriodic();
+}
+
 int main(int argc, char *argv[])
 {
-   std::cout << "number of available processors: " << omp_get_num_procs() << std::endl;
-   std::cout << "number of threads: " << omp_get_max_threads() << std::endl;
-   auto n = std::stol(argv[1]);
-   std::cout << "we will form sum of numbers from 1 to " << n << std::endl;
-   // start timer
-   auto t0 = omp_get_wtime();
-   auto s = 0LL;
-#pragma omp parallel for reduction(+ : s)
-   for (auto i = 1; i <= n; i++)
-   {
-       s += i;
-   }
-   // stop timer
-   auto t1 = omp_get_wtime();
-   std::cout << "sum: " << s << std::endl;
-   std::cout << "elapsed wall clock time: " << t1 - t0 << " seconds" << std::endl;
+   // Test_GetWitnessArray();
+   // Test_Duel();
+   Test_MatchNonPeriodic();
    return 0;
 }

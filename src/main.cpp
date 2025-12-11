@@ -9,6 +9,8 @@
 
 namespace fs = std::filesystem; // 目录遍历需C++17
 
+
+
 // 读取文本文件到字符串
 bool readTextFile(const std::string& file_path, std::string& content) {
     std::ifstream file(file_path, std::ios::in);
@@ -41,8 +43,8 @@ bool readBinaryFile(const std::string& file_path, std::vector<char>& content) {
 
 // 场景1：文档检索
 void handleDocumentRetrieval() {
-    const std::string doc_path = "~/ParallelComputing/data/document_retrieval/document.txt";
-    const std::string target_path = "~/ParallelComputing/data/document_retrieval/target.txt";
+    const std::string doc_path = std::string(DATA_PATH) + std::string("/document_retrieval/document.txt");
+    const std::string target_path = std::string(DATA_PATH) + std::string("/document_retrieval/target.txt");
     const std::string result_path = "../result_document.txt"; // 结果文件输出到项目根目录
 
     // 读取文档内容
@@ -92,8 +94,8 @@ void handleDocumentRetrieval() {
 
 // 场景2：软件杀毒
 void handleSoftwareAntivirus() {
-    const std::string virus_dir = "~/ParallelComputing/data/software_antivirus/virus";
-    const std::string scan_dir = "~/ParallelComputing/data/software_antivirus/opencv-4.10.0";
+    const std::string virus_dir = std::string(DATA_PATH) + std::string("/software_antivirus/virus");
+    const std::string scan_dir = std::string(DATA_PATH) + std::string("/software_antivirus/opencv-4.10.0");
     const std::string result_path = "../result_software.txt"; // 结果文件输出到项目根目录
 
     // 加载病毒库（文件名 -> 二进制数据）
@@ -174,7 +176,7 @@ void handleSoftwareAntivirus() {
 
 int main() {
     // 执行两个业务场景
-    handleDocumentRetrieval();
-    // handleSoftwareAntivirus();
+    // handleDocumentRetrieval();
+    handleSoftwareAntivirus();
     return 0;
 }

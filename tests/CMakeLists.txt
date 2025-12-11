@@ -5,5 +5,6 @@ add_executable(test main.cpp)
 
 target_link_libraries(test
 PUBLIC
+parallel
 OpenMP::OpenMP_CXX
 )
