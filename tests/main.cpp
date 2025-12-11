@@ -56,7 +56,7 @@ bool readTextFile(const std::string& file_path, std::string& content) {
 }
 
 // 读取二进制文件到char数组
-bool readBinaryFile(const std::string& file_path, std::vector<char>& content) {
+bool readBinaryFile(const std::string& file_path, std::string& content) {
     std::ifstream file(file_path, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Error: 无法打开二进制文件 " << file_path << std::endl;
@@ -107,12 +107,12 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
     const std::string virus_dir = std::string(DATA_PATH) + std::string("/software_antivirus/virus");
     const std::string scan_dir = std::string(DATA_PATH) + std::string("/software_antivirus/opencv-4.10.0");
     // 加载病毒库（文件名 -> 二进制数据）
-    std::map<std::string, std::vector<char>> virus_map;
+    std::map<std::string, std::string> virus_map;
     try {
         for (const auto& entry : fs::directory_iterator(virus_dir)) {
             if (entry.is_regular_file()) {
                 std::string virus_name = entry.path().filename().string();
-                std::vector<char> virus_data;
+                std::string virus_data;
                 if (readBinaryFile(entry.path().string(), virus_data)) {
                     virus_map[virus_name] = virus_data;
                 }
@@ -132,7 +132,7 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
         for (const auto& entry : fs::recursive_directory_iterator(scan_dir)) {
             if (entry.is_regular_file()) {
                 std::string file_path = entry.path().string();
-                std::vector<char> file_data;
+                std::string file_data;
                 if (!readBinaryFile(file_path, file_data)) {
                     continue; // 跳过无法读取的文件
                 }
@@ -153,8 +153,7 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
     }
 }
 
-
-int main() {
+void Test_Time(){
    KMPMatcher kmp;
    ParallelMatcher pm;
    // 执行两个业务场景
@@ -179,5 +178,9 @@ int main() {
    end = clock();
    scene2 = ((double) (end - start)) / CLOCKS_PER_SEC;
    std::cout << "并行场景2用时：" << scene2 << "s.\n";
+}
+
+int main() {
+   Test_Time();
    return 0;
 }

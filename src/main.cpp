@@ -11,8 +11,6 @@
 
 namespace fs = std::filesystem; // 目录遍历需C++17
 
-
-
 // 读取文本文件到字符串
 bool readTextFile(const std::string& file_path, std::string& content) {
     std::ifstream file(file_path, std::ios::in);
@@ -25,8 +23,8 @@ bool readTextFile(const std::string& file_path, std::string& content) {
     return true;
 }
 
-// 读取二进制文件到char数组
-bool readBinaryFile(const std::string& file_path, std::vector<char>& content) {
+// 读取二进制文件
+bool readBinaryFile(const std::string& file_path, std::string& content) {
     std::ifstream file(file_path, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Error: 无法打开二进制文件 " << file_path << std::endl;
@@ -99,12 +97,12 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
     const std::string result_path = "../result_software.txt"; // 结果文件输出到项目根目录
 
     // 加载病毒库（文件名 -> 二进制数据）
-    std::map<std::string, std::vector<char>> virus_map;
+    std::map<std::string, std::string> virus_map;
     try {
         for (const auto& entry : fs::directory_iterator(virus_dir)) {
             if (entry.is_regular_file()) {
                 std::string virus_name = entry.path().filename().string();
-                std::vector<char> virus_data;
+                std::string virus_data;
                 if (readBinaryFile(entry.path().string(), virus_data)) {
                     virus_map[virus_name] = virus_data;
                 }
@@ -127,7 +125,7 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
         for (const auto& entry : fs::recursive_directory_iterator(scan_dir)) {
             if (entry.is_regular_file()) {
                 std::string file_path = entry.path().string();
-                std::vector<char> file_data;
+                std::string file_data;
                 if (!readBinaryFile(file_path, file_data)) {
                     continue; // 跳过无法读取的文件
                 }
@@ -173,7 +171,8 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
 }
 
 int main() {
-    ParallelMatcher pm;
+    // ParallelMatcher pm;
+    KMPMatcher pm;
     // 执行两个业务场景
     clock_t start, end;
     start = clock();

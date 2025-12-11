@@ -2,8 +2,7 @@
 #include <algorithm>
 
 // 构建KMP前缀函数（next数组）
-template <typename T>
-void KMPMatcher::buildNext(const std::vector<T>& pattern, std::vector<int>& next) {
+void KMPMatcher::buildNext(const std::string& pattern, std::vector<int>& next) {
     size_t pattern_len = pattern.size();
     next.resize(pattern_len);
     next[0] = -1; // 初始值：无匹配前缀
@@ -22,9 +21,8 @@ void KMPMatcher::buildNext(const std::vector<T>& pattern, std::vector<int>& next
     }
 }
 
-// 通用KMP匹配逻辑（模板）
-template <typename T>
-void KMPMatcher::matchGeneric(const std::vector<T>& text, const std::vector<T>& pattern, std::vector<size_t>& positions) {
+// 文本匹配实现
+void KMPMatcher::match(const std::string& text, const std::string& pattern, std::vector<size_t>& positions) {
     positions.clear();
     size_t text_len = text.size();
     size_t pattern_len = pattern.size();
@@ -55,19 +53,3 @@ void KMPMatcher::matchGeneric(const std::vector<T>& text, const std::vector<T>& 
         }
     }
 }
-
-// 文本匹配实现（转换为char数组调用通用逻辑）
-void KMPMatcher::match(const std::string& text, const std::string& pattern, std::vector<size_t>& positions) {
-    std::vector<char> text_vec(text.begin(), text.end());
-    std::vector<char> pattern_vec(pattern.begin(), pattern.end());
-    matchGeneric(text_vec, pattern_vec, positions);
-}
-
-// 二进制匹配实现（直接调用通用逻辑）
-void KMPMatcher::match(const std::vector<char>& binary_data, const std::vector<char>& pattern_data, std::vector<size_t>& positions) {
-    matchGeneric(binary_data, pattern_data, positions);
-}
-
-// 显式实例化模板（避免链接错误）
-template void KMPMatcher::buildNext<char>(const std::vector<char>&, std::vector<int>&);
-template void KMPMatcher::matchGeneric<char>(const std::vector<char>&, const std::vector<char>&, std::vector<size_t>&);
