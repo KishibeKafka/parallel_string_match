@@ -14,7 +14,7 @@ void ParallelMatcher::match(const std::vector<char>& binary_data, const std::vec
 
 template <typename T>
 std::vector<int> ParallelMatcher::GetWitnessArray(const std::vector<T>& pattern){
-    int size = std::ceil(pattern.size() / 2);
+    int size = std::ceil(pattern.size() / 2.0);
     std::vector<int> wit(size, 0);
     #pragma omp parallel for
     for (int i = 2; i <= size; ++i){
@@ -38,12 +38,35 @@ int ParallelMatcher::Duel(int i, int j, const std::vector<T>& z, const std::vect
 template <typename T>
 void ParallelMatcher::ParallelMatch(const std::vector<T>& text, const std::vector<T>& pattern, std::vector<size_t>& positions){
     positions.clear();
+    size_t n = text.size();
+    size_t m = pattern.size();
+    if (m == 0 || n < m) {
+        return;
+    }
+
     std::vector<int> wit = GetWitnessArray(pattern);
-    if (1){
+    int periodic = GetPeriodicIndex(wit);
+    if (!periodic){
         // 非周期串
         MatchNonPeriodic(text, pattern, positions, wit);
     } else{
         // 周期串
+        std::vector<T> npp(pattern.begin(), pattern.begin()+periodic-1); // [1, periodic-1]
+        std::vector<int> npwit = GetWitnessArray(npp);
+        std::vector<size_t> temp;
+        MatchNonPeriodic(text, npp, temp, npwit);
+        // 判断剩余部分是否匹配
+        #pragma omp parallel for
+        for (int i = 0; i < temp.size(); ++i){
+            int match = 1;
+            for (int j = periodic-1; j < m; ++j){
+                if (text[temp[i]+j] != pattern[j]){
+                    match = 0;
+                    break;
+                }
+            }
+            if (match) positions.push_back(temp[i]);
+        }
     }
 }
 
@@ -86,18 +109,25 @@ void ParallelMatcher::MatchNonPeriodic(const std::vector<T>& text, const std::ve
                 break;
             }
         }
-        if (match) positions.push_back(temp[i]);
+        if (match) positions.push_back(temp[i]-1);
     }
 }
+
+int ParallelMatcher::GetPeriodicIndex(std::vector<int>& wit){
+    for (int i = wit.size(); i >= 2; --i){
+        if (wit[i-1] == 0) return i;
+    }
+    return 0;
+}
+
 
 void ParallelMatcher::Test_GetWitnessArray(){
     std::cout << "Testing Witness Array.\n";
     
-    const std::string pattern = "abaababa";
+    const std::string pattern = "abababa";
     std::vector<char> p(pattern.begin(), pattern.end());
-    
     std::vector<int> wit = GetWitnessArray(p);
-    
+    std::cout << "size: " << wit.size() << '\n';
     std::cout << "Witness Array result: ";
     for (int val : wit) {
         std::cout << val << " ";
@@ -125,6 +155,20 @@ void ParallelMatcher::Test_MatchNonPeriodic(){
     std::vector<int> wit = GetWitnessArray(p);
     std::vector<size_t> positions;
     MatchNonPeriodic(t, p, positions, wit);
+    for (int i = 0; i < positions.size(); ++i){
+        std::cout << positions[i] << ", ";
+    }
+    std::cout << '\n';
+}
+
+void ParallelMatcher::Test_ParallelMatch(){
+    std::cout << "Testing Parallel Match.\n";                       
+    const std::string text = "abaababaababaababaababa";
+    const std::string pattern = "ababa";
+    std::vector<char> t(text.begin(), text.end());     
+    std::vector<char> p(pattern.begin(), pattern.end());
+    std::vector<size_t> positions;
+    ParallelMatch(t, p, positions);
     for (int i = 0; i < positions.size(); ++i){
         std::cout << positions[i] << ", ";
     }

@@ -1,4 +1,5 @@
 #include "kmp_matcher.h"
+#include "parallel_matcher.h"
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -6,6 +7,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <ctime>
 
 namespace fs = std::filesystem; // 目录遍历需C++17
 
@@ -42,7 +44,7 @@ bool readBinaryFile(const std::string& file_path, std::vector<char>& content) {
 }
 
 // 场景1：文档检索
-void handleDocumentRetrieval() {
+void handleDocumentRetrieval(StringMatcher *matcher) {
     const std::string doc_path = std::string(DATA_PATH) + std::string("/document_retrieval/document.txt");
     const std::string target_path = std::string(DATA_PATH) + std::string("/document_retrieval/target.txt");
     const std::string result_path = "../result_document.txt"; // 结果文件输出到项目根目录
@@ -68,8 +70,6 @@ void handleDocumentRetrieval() {
     }
     target_file.close();
 
-    // 创建KMP匹配器
-    KMPMatcher kmp;
     std::ofstream result_file(result_path, std::ios::out | std::ios::trunc);
     if (!result_file.is_open()) {
         std::cerr << "Error: 无法创建结果文件 " << result_path << std::endl;
@@ -79,7 +79,7 @@ void handleDocumentRetrieval() {
     // 逐个匹配模式串并输出结果
     for (const auto& pattern : patterns) {
         std::vector<size_t> positions;
-        kmp.match(document, pattern, positions);
+        matcher->match(document, pattern, positions);
         // 输出格式：次数 位置1 位置2 ...
         result_file << positions.size();
         for (size_t pos : positions) {
@@ -93,7 +93,7 @@ void handleDocumentRetrieval() {
 }
 
 // 场景2：软件杀毒
-void handleSoftwareAntivirus() {
+void handleSoftwareAntivirus(StringMatcher *matcher) {
     const std::string virus_dir = std::string(DATA_PATH) + std::string("/software_antivirus/virus");
     const std::string scan_dir = std::string(DATA_PATH) + std::string("/software_antivirus/opencv-4.10.0");
     const std::string result_path = "../result_software.txt"; // 结果文件输出到项目根目录
@@ -120,8 +120,6 @@ void handleSoftwareAntivirus() {
         return;
     }
 
-    // 创建KMP匹配器
-    KMPMatcher kmp;
     std::map<std::string, std::set<std::string>> scan_results; // 文件路径 -> 病毒名集合
 
     // 递归遍历待检测目录
@@ -138,7 +136,7 @@ void handleSoftwareAntivirus() {
                 std::set<std::string> detected_viruses;
                 for (const auto& [virus_name, virus_data] : virus_map) {
                     std::vector<size_t> positions;
-                    kmp.match(file_data, virus_data, positions);
+                    matcher->match(file_data, virus_data, positions);
                     if (!positions.empty()) {
                         detected_viruses.insert(virus_name);
                     }
@@ -175,8 +173,18 @@ void handleSoftwareAntivirus() {
 }
 
 int main() {
+    ParallelMatcher pm;
     // 执行两个业务场景
-    // handleDocumentRetrieval();
-    handleSoftwareAntivirus();
+    clock_t start, end;
+    start = clock();
+    handleDocumentRetrieval(&pm);
+    end = clock();
+    double scene1 = ((double) (end - start)) / CLOCKS_PER_SEC;
+    std::cout << "场景1用时：" << scene1 << "s.\n";
+    start = clock();
+    handleSoftwareAntivirus(&pm);
+    end = clock();
+    double scene2 = ((double) (end - start)) / CLOCKS_PER_SEC;
+    std::cout << "场景2用时：" << scene2 << "s.\n";
     return 0;
 }

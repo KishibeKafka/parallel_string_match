@@ -5,6 +5,9 @@ add_executable(test main.cpp)
 
 target_link_libraries(test
 PUBLIC
+kmp
 parallel
 OpenMP::OpenMP_CXX
 )
+
+target_compile_definitions(test PRIVATE DATA_PATH=\"${DATA_PATH}\")

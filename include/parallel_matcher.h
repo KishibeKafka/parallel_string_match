@@ -20,8 +20,11 @@ private:
     template <typename T>
     void MatchNonPeriodic(const std::vector<T>& text, const std::vector<T>& pattern, std::vector<size_t>& positions,  std::vector<int>& wit);
 
+    int GetPeriodicIndex(std::vector<int>& wit);
+
 public:
     void Test_GetWitnessArray();
     void Test_Duel(int i, int j);
     void Test_MatchNonPeriodic();
+    void Test_ParallelMatch();
 };
