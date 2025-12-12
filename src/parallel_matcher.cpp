@@ -21,6 +21,7 @@ void ParallelMatcher::match(const std::string& text, const std::string& pattern,
         std::vector<size_t> temp;
         MatchNonPeriodic(text, npp, temp, npwit);
         // 判断剩余部分是否匹配
+        #pragma omp parallel for if (temp.size() > 1000)
         for (int i = 0; i < temp.size(); ++i){
             int match = 1;
             for (int j = periodic-1; j < m; ++j){
@@ -29,20 +30,51 @@ void ParallelMatcher::match(const std::string& text, const std::string& pattern,
                     break;
                 }
             }
-            if (match) positions.push_back(temp[i]);
+            if (match) {
+                #pragma omp critical
+                {
+                    positions.push_back(temp[i]);
+                }
+            }
         }
     }
 }
 
 std::vector<int> ParallelMatcher::GetWitnessArray(const std::string& pattern){
-    int size = std::ceil(pattern.size() / 2.0);
+    int m = pattern.size();
+    int size = std::ceil(m / 2.0);
+    
     std::vector<int> wit(size, 0);
-    for (int i = 2; i <= size; ++i){
-        for (int j = i; j <= pattern.size(); ++j){
-            if (pattern[j-1] != pattern[j-i]){
-                wit[i-1] = j-i+1;
-                break;
-            }
+    // 暴力算法 O(M^2)
+    // for (int i = 2; i <= size; ++i){
+    //     for (int j = i; j <= pattern.size(); ++j){
+    //         if (pattern[j-1] != pattern[j-i]){
+    //             wit[i-1] = j-i+1;
+    //             break;
+    //         }
+    //     }
+    // }
+
+    // Z算法 O(M)
+    std::vector<int> z(size, 0);
+    int l = 0, r = 0;
+    for (int i = 1; i < size; ++i) {
+        if (i <= r && z[i - l] < r - i + 1) {
+            z[i] = z[i - l];
+        } else {
+            z[i] = std::max(0, r - i + 1);
+            while (i + z[i] < m && pattern[z[i]] == pattern[i + z[i]]) ++z[i];
+        }
+        if (i + z[i] - 1 > r) l = i, r = i + z[i] - 1;
+    }
+    // 将z函数转换为wit
+    for (int k = 1; k < size; ++k) {
+        if (k + z[k] < m) {
+            // 发生了不匹配
+            wit[k] = z[k] + 1;
+        } else {
+            // k + z[k] == m，说明匹配到了模式串末尾，Witness 为 0
+            wit[k] = 0;
         }
     }
     return wit;
@@ -61,7 +93,7 @@ void ParallelMatcher::MatchNonPeriodic(const std::string& text, const std::strin
     for (int i = 0; i < winners.size(); ++i) winners[i] = i+1; // 胜者初始化
     int d = wit.size();
     // 在d个下标中决出胜者
-    #pragma omp parallel for
+    #pragma omp parallel for if (n-m > 1000)
     for (int i = 0; i <= (n-m+1)/d; ++i){
         for (int j = 1; j < d; ++j){
             if (i*d+j < n-m+1)
@@ -75,7 +107,7 @@ void ParallelMatcher::MatchNonPeriodic(const std::string& text, const std::strin
         temp.push_back(winners[i-1]);
         i += d;
     }
-    #pragma omp parallel for
+    #pragma omp parallel for if (temp.size() > 1000)
     for (i = 0; i < temp.size(); ++i){
         int match = 1;
         for (int j = 0; j < m; ++j){
@@ -84,12 +116,17 @@ void ParallelMatcher::MatchNonPeriodic(const std::string& text, const std::strin
                 break;
             }
         }
-        if (match) positions.push_back(temp[i]-1);
+        if (match) {
+            #pragma omp critical
+            {
+                positions.push_back(temp[i]-1);
+            }
+        }
     }
 }
 
 int ParallelMatcher::GetPeriodicIndex(std::vector<int>& wit){
-    for (int i = wit.size(); i >= 2; --i){
+    for (int i = 2; i <= wit.size(); ++i){
         if (wit[i-1] == 0) return i;
     }
     return 0;
@@ -98,7 +135,7 @@ int ParallelMatcher::GetPeriodicIndex(std::vector<int>& wit){
 void ParallelMatcher::Test_GetWitnessArray(){
     std::cout << "Testing Witness Array.\n";
     
-    const std::string p = "abababa";
+    const std::string p = "abaababa";
     std::vector<int> wit = GetWitnessArray(p);
     std::cout << "size: " << wit.size() << '\n';
     std::cout << "Witness Array result: ";

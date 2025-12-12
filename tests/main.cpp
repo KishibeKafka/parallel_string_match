@@ -161,13 +161,14 @@ void Test_Time(){
    start = clock();
    handleDocumentRetrieval(&kmp);
    end = clock();
-   double scene1 = ((double) (end - start)) / CLOCKS_PER_SEC;
-   std::cout << "KMP场景1用时：" << scene1 << "s.\n";
-   start = clock();
-   handleSoftwareAntivirus(&kmp);
-   end = clock();
-   double scene2 = ((double) (end - start)) / CLOCKS_PER_SEC;
-   std::cout << "KMP场景2用时：" << scene2 << "s.\n";
+   double scene1, scene2;
+//    scene1 = ((double) (end - start)) / CLOCKS_PER_SEC;
+//    std::cout << "KMP场景1用时：" << scene1 << "s.\n";
+//    start = clock();
+//    handleSoftwareAntivirus(&kmp);
+//    end = clock();
+//    scene2 = ((double) (end - start)) / CLOCKS_PER_SEC;
+//    std::cout << "KMP场景2用时：" << scene2 << "s.\n";
    start = clock();
    handleDocumentRetrieval(&pm);
    end = clock();
@@ -180,7 +181,17 @@ void Test_Time(){
    std::cout << "并行场景2用时：" << scene2 << "s.\n";
 }
 
+void test_omp(){
+    #pragma omp parallel for if (1)
+    for (int i = 0; i < 6; ++i)
+    {
+        std::cout << "Hello" << ", I am Thread " << omp_get_thread_num() << std::endl;
+    }
+}
+
 int main() {
-   Test_Time();
-   return 0;
+    Test_Time();
+    // test_omp();
+    // Test_GetWitnessArray();
+    return 0;
 }
