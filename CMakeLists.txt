@@ -6,7 +6,9 @@ project(ParallelStringMatch VERSION 1.0)          # 定义项目名称和版本
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(DATA_PATH "/root/ParallelComputing/data")
+if (NOT DEFINED DATA_PATH)
+    set(DATA_PATH "/root/ParallelComputing/data")
+endif()
 
 # 添加头文件搜索路径
 include_directories(${PROJECT_SOURCE_DIR}/include)

@@ -174,6 +174,7 @@ int main() {
     ParallelMatcher pm;
     // KMPMatcher pm;
     // 执行两个业务场景
+    std::cout << "开始执行两个场景" << '\n';
     clock_t start, end;
     start = clock();
     handleDocumentRetrieval(&pm);
