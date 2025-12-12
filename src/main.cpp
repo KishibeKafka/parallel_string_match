@@ -92,8 +92,14 @@ void handleDocumentRetrieval(StringMatcher *matcher) {
 
 // 场景2：软件杀毒
 void handleSoftwareAntivirus(StringMatcher *matcher) {
-    const std::string virus_dir = std::string(DATA_PATH) + std::string("/software_antivirus/virus");
-    const std::string scan_dir = std::string(DATA_PATH) + std::string("/software_antivirus/opencv-4.10.0");
+    std::string data_path(DATA_PATH);
+    // 移除DATA_PATH末尾的/（避免路径拼接重复）
+    if (!data_path.empty() && data_path.back() == '/') {
+        data_path.pop_back();
+    }
+
+    const std::string virus_dir = data_path + "/software_antivirus/virus";
+    const std::string scan_dir = data_path + "/software_antivirus/opencv-4.10.0";
     const std::string result_path = "../result_software.txt"; // 结果文件输出到项目根目录
 
     // 加载病毒库（文件名 -> 二进制数据）
@@ -118,19 +124,32 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
         return;
     }
 
-    std::map<std::string, std::set<std::string>> scan_results; // 文件路径 -> 病毒名集合
+    std::map<std::string, std::set<std::string>> scan_results; // 相对路径 -> 病毒名集合
 
     // 递归遍历待检测目录
     try {
         for (const auto& entry : fs::recursive_directory_iterator(scan_dir)) {
             if (entry.is_regular_file()) {
-                std::string file_path = entry.path().string();
+                // 1. 获取文件完整绝对路径（Linux下为/开头）
+                std::string full_file_path = entry.path().string();
+                
+                // 2. 核心：裁剪DATA_PATH前缀，生成相对路径（仅保留data/开头的部分）
+                std::string relative_path;
+                if (full_file_path.find(data_path) == 0) { // 确认路径以DATA_PATH开头
+                    // 截取DATA_PATH之后的部分，拼接成data/xxx格式
+                    relative_path = "data" + full_file_path.substr(data_path.length());
+                } else {
+                    // 非目标目录文件，跳过（理论上不会触发）
+                    continue;
+                }
+
+                // 3. 读取文件数据
                 std::string file_data;
-                if (!readBinaryFile(file_path, file_data)) {
+                if (!readBinaryFile(full_file_path, file_data)) {
                     continue; // 跳过无法读取的文件
                 }
 
-                // 检测当前文件是否包含病毒
+                // 4. 检测当前文件是否包含病毒
                 std::set<std::string> detected_viruses;
                 for (const auto& [virus_name, virus_data] : virus_map) {
                     std::vector<size_t> positions;
@@ -140,9 +159,9 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
                     }
                 }
 
-                // 记录检测结果
+                // 5. 记录检测结果（使用裁剪后的相对路径）
                 if (!detected_viruses.empty()) {
-                    scan_results[file_path] = detected_viruses;
+                    scan_results[relative_path] = detected_viruses;
                 }
             }
         }
@@ -151,13 +170,14 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
         return;
     }
 
-    // 写入杀毒结果
+    // 写入杀毒结果（Linux下文件流默认兼容/分隔符）
     std::ofstream result_file(result_path, std::ios::out | std::ios::trunc);
     if (!result_file.is_open()) {
         std::cerr << "Error: 无法创建杀毒结果文件 " << result_path << std::endl;
         return;
     }
 
+    // 输出格式：data/xxx/xxx 病毒名1 病毒名2
     for (const auto& [file_path, viruses] : scan_results) {
         result_file << file_path;
         for (const auto& virus : viruses) {
