@@ -16,31 +16,15 @@ void ParallelMatcher::match(const std::string& text, const std::string& pattern,
         MatchNonPeriodic(text, pattern, positions, wit);
     } else{
         // 周期串
-        std::string npp(pattern.begin(), pattern.begin()+periodic-1); // [1, periodic-1]
-        std::vector<int> npwit = GetWitnessArray(npp);
-        std::vector<size_t> temp;
-        MatchNonPeriodic(text, npp, temp, npwit);
-        // 判断剩余部分是否匹配
-        #pragma omp parallel for if (temp.size() > 1000)
-        for (int i = 0; i < temp.size(); ++i){
-            int match = 1;
-            for (int j = periodic-1; j < m; ++j){
-                if (text[temp[i]+j] != pattern[j]){
-                    match = 0;
-                    break;
-                }
-            }
-            if (match) {
-                #pragma omp critical
-                {
-                    positions.push_back(temp[i]);
-                }
-            }
-        }
+        MatchPeriodic(text, pattern, positions, wit, periodic);
     }
 }
 
 std::vector<int> ParallelMatcher::GetWitnessArray(const std::string& pattern){
+    if (wit_map.find(pattern) != wit_map.end()){
+        return wit_map[pattern];
+    }
+    
     int m = pattern.size();
     int size = std::ceil(m / 2.0);
     
@@ -77,6 +61,7 @@ std::vector<int> ParallelMatcher::GetWitnessArray(const std::string& pattern){
             wit[k] = 0;
         }
     }
+    wit_map[pattern] = wit;
     return wit;
 }
 
@@ -89,29 +74,19 @@ int ParallelMatcher::Duel(int i, int j, const std::string& z, const std::string&
 void ParallelMatcher::MatchNonPeriodic(const std::string& text, const std::string& pattern, std::vector<size_t>& positions,  std::vector<int>& wit){
     int n = text.size();
     int m = pattern.size();
-    std::vector<int> winners(n-m+1, 0);
-    for (int i = 0; i < winners.size(); ++i) winners[i] = i+1; // 胜者初始化
     int d = wit.size();
-    // 在d个下标中决出胜者
+    // 在d个下标中决出胜者，并判断是否匹配
     #pragma omp parallel for if (n-m > 1000)
-    for (int i = 0; i <= (n-m+1)/d; ++i){
+    for (int i = 0; i < (n-m+1)/d; ++i){
+        int winner = i*d;
         for (int j = 1; j < d; ++j){
-            if (i*d+j < n-m+1)
-                winners[i*d] = Duel(winners[i*d], winners[i*d+j], text, pattern, wit);
+            if (i*d+j < n-m+1){
+                winner = Duel(winner, i*d+j, text, pattern, wit);
+            }
         }
-    }
-    // 判断是否匹配
-    std::vector<size_t> temp;
-    int i = 1;
-    while (i <= n-m+1){
-        temp.push_back(winners[i-1]);
-        i += d;
-    }
-    #pragma omp parallel for if (temp.size() > 1000)
-    for (i = 0; i < temp.size(); ++i){
         int match = 1;
         for (int j = 0; j < m; ++j){
-            if (text[temp[i]+j-1] != pattern[j]){
+            if (text[winner+j-1] != pattern[j]){
                 match = 0;
                 break;
             }
@@ -119,23 +94,63 @@ void ParallelMatcher::MatchNonPeriodic(const std::string& text, const std::strin
         if (match) {
             #pragma omp critical
             {
-                positions.push_back(temp[i]-1);
+                positions.push_back(winner-1);
+            }
+        }
+    }
+}
+
+void ParallelMatcher::MatchPeriodic(const std::string& text, const std::string& pattern, std::vector<size_t>& positions,  std::vector<int>& wit, int periodic){
+    std::string npp(pattern.begin(), pattern.begin()+periodic-1); // [1, periodic-1]
+    std::vector<int> npwit = GetWitnessArray(npp);
+    int n = text.size();
+    int pm = pattern.size();
+    int m = npp.size();
+    int d = npwit.size();
+    #pragma omp parallel for if (n-m > 1000)
+    for (int i = 0; i < (n-m+1)/d; ++i){
+        int winner = i*d;
+        for (int j = 1; j < d; ++j){
+            if (i*d+j < n-m+1){
+                winner = Duel(winner, i*d+j, text, npp, npwit);
+            }
+        }
+        int match = 1;
+        for (int j = 0; j < pm; ++j){
+            if (text[winner+j-1] != pattern[j]){
+                match = 0;
+                break;
+            }
+        }
+        if (match) {
+            #pragma omp critical
+            {
+                positions.push_back(winner-1);
             }
         }
     }
 }
 
 int ParallelMatcher::GetPeriodicIndex(std::vector<int>& wit){
-    for (int i = 2; i <= wit.size(); ++i){
-        if (wit[i-1] == 0) return i;
+    int first_zero = 0, i = 2;
+    for (i = 2; i <= wit.size(); ++i){
+        if (wit[i-1] == 0){
+            if (!first_zero)
+                first_zero = 1;
+            else
+                return i;
+        }
     }
-    return 0;
+    if (!first_zero)
+        return 0;
+    else
+        return i;
 }
 
 void ParallelMatcher::Test_GetWitnessArray(){
     std::cout << "Testing Witness Array.\n";
     
-    const std::string p = "abaababa";
+    const std::string p = " a a";
     std::vector<int> wit = GetWitnessArray(p);
     std::cout << "size: " << wit.size() << '\n';
     std::cout << "Witness Array result: ";
@@ -169,8 +184,8 @@ void ParallelMatcher::Test_MatchNonPeriodic(){
 
 void ParallelMatcher::Test_ParallelMatch(){
     std::cout << "Testing Parallel Match.\n";                       
-    const std::string t = "abaababaababaababaababa";
-    const std::string p = "ababa";
+    const std::string t = "abcabcabcabccbacbacbacbabcabcabcabcabc";
+    const std::string p = "abcabcabcabc";
     std::vector<size_t> positions;
     match(t, p, positions);
     for (int i = 0; i < positions.size(); ++i){

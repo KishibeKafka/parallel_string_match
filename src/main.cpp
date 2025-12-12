@@ -171,8 +171,8 @@ void handleSoftwareAntivirus(StringMatcher *matcher) {
 }
 
 int main() {
-    // ParallelMatcher pm;
-    KMPMatcher pm;
+    ParallelMatcher pm;
+    // KMPMatcher pm;
     // 执行两个业务场景
     clock_t start, end;
     start = clock();

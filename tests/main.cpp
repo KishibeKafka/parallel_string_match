@@ -162,13 +162,13 @@ void Test_Time(){
    handleDocumentRetrieval(&kmp);
    end = clock();
    double scene1, scene2;
-//    scene1 = ((double) (end - start)) / CLOCKS_PER_SEC;
-//    std::cout << "KMP场景1用时：" << scene1 << "s.\n";
-//    start = clock();
-//    handleSoftwareAntivirus(&kmp);
-//    end = clock();
-//    scene2 = ((double) (end - start)) / CLOCKS_PER_SEC;
-//    std::cout << "KMP场景2用时：" << scene2 << "s.\n";
+   scene1 = ((double) (end - start)) / CLOCKS_PER_SEC;
+   std::cout << "KMP场景1用时：" << scene1 << "s.\n";
+   start = clock();
+   handleSoftwareAntivirus(&kmp);
+   end = clock();
+   scene2 = ((double) (end - start)) / CLOCKS_PER_SEC;
+   std::cout << "KMP场景2用时：" << scene2 << "s.\n";
    start = clock();
    handleDocumentRetrieval(&pm);
    end = clock();
@@ -191,7 +191,8 @@ void test_omp(){
 
 int main() {
     Test_Time();
-    // test_omp();
+    // Test_MatchNonPeriodic();
+    // Test_ParallelMatch();
     // Test_GetWitnessArray();
     return 0;
 }
